@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>epic chat</title>
+</head>
+
+<body>
+    <h1>epic chat</h1>
+    <input id="input" type="text" placeholder="send a message" onkeydown="sendMessage">
+    <ul id="messages">
+</body>
+
+<script>
+    function sendMessage(e) {
+        if (e.key !== 'Enter') return
+        ws.send(JSON.stringify({ chatMessage: { content: e.target.value } }))
+    }
+
+    document.getElementById('input').addEventListener("keydown", sendMessage)
+
+    let ws = new WebSocket('ws://localhost:3000/ws')
+
+    function getUsername() {
+        let username = prompt("what is your username")
+
+        if (username !== null && username !== "") {
+            ws.send(JSON.stringify({ username: { username } }))
+        } else {
+            getUsername()
+        }
+    }
+
+    ws.onopen = getUsername
+
+    ws.onmessage = (message) => {
+        let parsed = JSON.parse(message.data)
+
+        if (parsed.type == "usernameTaken") {
+            getUsername()
+            return
+        }
+
+        let li = document.createElement("li")
+
+        if (parsed.type == "chatMessage") {
+            li.textContent = `${parsed.data.username}: ${parsed.data.content}`
+        } else if (parsed.type == "userConnected") {
+            li.textContent = `${parsed.data.username} joined`
+        } else if (parsed.type == "userDisconnected") {
+            li.textContent = `${parsed.data.username} left`
+        }
+
+        document.getElementById('messages').appendChild(li)
+    }
+</script>
+
+</html>
